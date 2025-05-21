@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nurse Dashboard - PokéCare Center</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Shared font style */
+        body {
+            font-family: 'Arial', sans-serif; /* Fallback, Tailwind's sans will usually take over */
+        }
+
+        /* Animation for toast */
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .animate-slideInRight {
+            animation: slideInRight 0.3s ease-out forwards;
+        }
+        @keyframes fadeOutRight {
+            from { opacity: 1; transform: translateX(0); }
+            to { opacity: 0; transform: translateX(20px); }
+        }
+        .animate-fadeOutRight {
+            animation: fadeOutRight 0.5s ease-out forwards;
+        }
+
+        /* Custom scrollbar for WebKit browsers (Chrome, Safari) */
+        ::-webkit-scrollbar {
+            width: 12px;
+            height: 12px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #fbcfe8; /* pink-200 */
+            border-left: 2px solid black;
+            border-right: 2px solid black;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #ec4899; /* pink-500 */
+            border: 2px solid black;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #db2777; /* pink-600 */
+        }
+    </style>
+</head>
+<body class="bg-pink-200 min-h-screen text-black p-4 selection:bg-sky-500 selection:text-white">
+
+    <nav class="bg-pink-500 border-4 border-black p-4 mb-10 max-w-3xl mx-auto shadow-[6px_6px_0px_#000000] rounded-none">
+        <div class="flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-0">
+            <h1 class="text-3xl font-extrabold uppercase tracking-wider text-white">PokéCare Center</h1>
+            <button id="logoutBtn" class="bg-red-500 text-white px-6 py-2 border-2 border-black font-bold uppercase shadow-[3px_3px_0px_#000000] hover:bg-red-600 active:bg-red-700 active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0px_#000000] transition-all duration-50 rounded-none">Logout</button>
+        </div>
+    </nav>
+
+    <main class="max-w-3xl mx-auto grid grid-cols-1 gap-10">
+
+        <section class="bg-white border-4 border-black p-6 shadow-[6px_6px_0px_#000000] rounded-none">
+            <h2 class="text-2xl font-extrabold mb-6 uppercase text-center text-pink-600">PokéMart Inventory</h2>
+            <div id="itemsList" class="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+                <p class="italic text-neutral-500">Loading inventory...</p>
+            </div>
+        </section>
+
+        <section class="bg-sky-200 border-4 border-black p-6 shadow-[6px_6px_0px_#000000] rounded-none">
+            <h2 class="text-2xl font-extrabold mb-6 uppercase text-center text-sky-700">Pokémon Recovery Ward</h2>
+            <div id="restedPokemonList" class="space-y-3 max-h-80 overflow-y-auto pr-2">
+                <p class="italic text-neutral-500">Checking recovery ward...</p>
+            </div>
+        </section>
+
+        <section class="bg-yellow-200 border-4 border-black p-6 shadow-[6px_6px_0px_#000000] rounded-none">
+            <h2 class="text-2xl font-extrabold mb-6 uppercase text-center text-yellow-700">Recent Activity Log</h2>
+            <div id="recentTransactions" class="space-y-3 max-h-80 overflow-y-auto pr-2">
+                <p class="italic text-neutral-500">Loading activity log...</p>
+            </div>
+        </section>
+    </main>
+
+    <footer class="text-center py-8 mt-12">
+        <p class="font-mono text-sm text-neutral-700">PokéCare Systems &copy; <span id="currentYear">2024</span> - We Hope To See You Again!</p>
+    </footer>
+
+    <script>
+        // Function to get current year for the footer
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+        // Utility function for showing neobrutalist toast notifications
+        function showToast(message, isError = false) {
+            const toast = document.createElement('div');
+            toast.className = `fixed top-5 right-5 p-4 border-2 border-black font-bold text-black shadow-[4px_4px_0px_#000] ${isError ? 'bg-red-400' : 'bg-green-400'} z-50 animate-slideInRight rounded-none max-w-xs text-sm`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.remove('animate-slideInRight');
+                toast.classList.add('animate-fadeOutRight');
+                setTimeout(() => toast.remove(), 450); // Wait for fade out animation
+            }, 3000);
+        }
+
+        // Logout Handler
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            sessionStorage.removeItem('user');
+            showToast('Logged out. Have a wonderful day, Nurse!');
+            setTimeout(() => { // Delay redirect slightly for toast visibility
+                window.location.href = 'login.html';
+            }, 1500);
+        });
+
+        // Load and display items for management
+        async function loadItems() {
+            const itemsListDiv = document.getElementById('itemsList');
+            try {
+                const response = await fetch('/pokemart/items'); // Ensure this endpoint is correct
+                if (!response.ok) throw new Error(`Network error: ${response.statusText}`);
+                const items = await response.json();
+
+                if (items.length === 0) {
+                    itemsListDiv.innerHTML = '<p class="italic text-neutral-600 p-3 bg-white/50 border-2 border-black rounded-none text-center">PokéMart inventory is currently empty.</p>';
+                    return;
+                }
+
+                itemsListDiv.innerHTML = items.map(item => `
+                    <div class="bg-white p-4 border-2 border-black flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-[3px_3px_0px_rgba(0,0,0,0.7)] rounded-none">
+                        <div class="flex-grow mb-3 md:mb-0">
+                            <span class="font-bold text-lg text-pink-700">${item.name}</span>
+                            <span class="block text-sm text-neutral-700">Current Stock: ${item.stockQuantity}</span>
+                            <span class="block text-sm text-neutral-600">Current Price: Poké₽ ${item.price}</span>
+                        </div>
+                        <div class="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+                            <input type="number" class="restock-qty w-full sm:w-24 p-2 border-2 border-black bg-white text-black font-mono text-center focus:outline-none focus:ring-2 focus:ring-pink-500 rounded-none placeholder-neutral-400" data-item-id="${item.id}" placeholder="Add Qty" min="0">
+                            <input type="number" step="0.01" class="restock-price w-full sm:w-24 p-2 border-2 border-black bg-white text-black font-mono text-center focus:outline-none focus:ring-2 focus:ring-pink-500 rounded-none placeholder-neutral-400" data-item-id="${item.id}" placeholder="New Price" min="0">
+                            <button onclick="restockItem('${item.id}')" class="w-full sm:w-auto bg-sky-500 text-white px-4 py-2 border-2 border-black font-semibold uppercase text-xs shadow-[2px_2px_0px_#000000] hover:bg-sky-600 active:bg-sky-700 active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_#000000] transition-all duration-50 rounded-none">
+                                Update
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Failed to load items:', error);
+                showToast('Failed to load PokéMart inventory: ' + error.message, true);
+                itemsListDiv.innerHTML = '<p class="italic text-red-600 p-3 bg-red-100 border-2 border-red-500 rounded-none text-center">Error loading inventory. Please try again.</p>';
+            }
+        }
+
+        // Restock an item (update quantity and/or price)
+        async function restockItem(itemId) {
+            const qtyInput = document.querySelector(`.restock-qty[data-item-id="${itemId}"]`);
+            const priceInput = document.querySelector(`.restock-price[data-item-id="${itemId}"]`);
+
+            const qtyValue = qtyInput.value.trim();
+            const priceValue = priceInput.value.trim();
+
+            let qty = qtyValue === '' ? null : parseInt(qtyValue);
+            let price = priceValue === '' ? null : parseFloat(priceValue);
+
+            if (qty !== null && isNaN(qty)) {
+                showToast('Invalid quantity. Please enter a number.', true);
+                return;
+            }
+            if (price !== null && isNaN(price)) {
+                showToast('Invalid price. Please enter a number.', true);
+                return;
+            }
+            if (qty === null && price === null) {
+                showToast('Please enter a quantity or a price to update.', true);
+                return;
+            }
+
+
+            // Construct query parameters carefully
+            const params = new URLSearchParams();
+            if (qty !== null) params.append('qty', qty);
+            if (price !== null) params.append('price', price);
+
+
+            try {
+                const response = await fetch(`/pokemart/restock/${itemId}?${params.toString()}`, { // Ensure this endpoint is correct
+                    method: 'POST',
+                    // No body needed if sending via query params, adjust if your backend expects JSON body
+                });
+
+                if (response.ok) {
+                    showToast('Item updated successfully!');
+                    loadItems(); // Refresh the items list
+                    qtyInput.value = ''; // Clear input
+                    priceInput.value = ''; // Clear input
+                } else {
+                    const errorData = await response.json().catch(() => ({ message: 'Failed to update item. Server responded unexpectedly.' }));
+                    throw new Error(errorData.message || `Server error: ${response.status}`);
+                }
+            } catch (error) {
+                console.error('Failed to restock item:', error);
+                showToast('Failed to update item: ' + error.message, true);
+            }
+        }
+
+        // Load rested Pokémon
+        async function loadRestedPokemon() {
+            const restedListDiv = document.getElementById('restedPokemonList');
+            try {
+                const response = await fetch('/pokemart/rested-pokemon'); // Ensure this endpoint is correct
+                if (!response.ok) throw new Error(`Network error: ${response.statusText}`);
+                const pokemons = await response.json();
+
+                if (pokemons.length === 0) {
+                    restedListDiv.innerHTML = '<p class="italic text-neutral-600 p-3 bg-white/50 border-2 border-black rounded-none text-center">No Pokémon are currently recovering.</p>';
+                    return;
+                }
+
+                restedListDiv.innerHTML = pokemons.map(p => `
+                    <div class="bg-white p-3 border-2 border-black shadow-[2px_2px_0px_rgba(0,0,0,0.7)] rounded-none">
+                        <span class="font-bold text-sky-700">${p.name} (ID: ${p.id || 'N/A'})</span>
+                        <span class="block text-sm text-neutral-700">Rest Started: ${new Date(p.restStartDate).toLocaleDateString()}</span>
+                        <span class="block text-xs text-neutral-600">Trainer: ${p.trainerUsername || 'Unknown'}</span>
+                        <span class="block text-xs text-neutral-600">Days to Rest: ${p.daysToRest || 'N/A'}</span>
+                         ${p.id ? `<button onclick="markAsRested('${p.id}')" class="mt-2 bg-green-500 text-white px-3 py-1 border-2 border-black font-semibold uppercase text-xs shadow-[2px_2px_0px_#000000] hover:bg-green-600 active:bg-green-700 rounded-none">Mark Ready</button>` : ''}
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Failed to load rested Pokémon:', error);
+                showToast('Failed to load Pokémon in recovery: ' + error.message, true);
+                restedListDiv.innerHTML = '<p class="italic text-red-600 p-3 bg-red-100 border-2 border-red-500 rounded-none text-center">Error loading Pokémon. Please try again.</p>';
+            }
+        }
+
+        // Update the rest status of a Pokémon
+        async function updateRestStatus(transactionId, isReady) {
+            try {
+                const response = await fetch(`/pokemart/update-rest-status/${transactionId}?isReady=${isReady}`, {
+                    method: 'PATCH'
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => null);
+                    throw new Error(errorData?.message || `Server error: ${response.status}`);
+                }
+
+                showToast(`Pokémon status updated successfully!`);
+                loadRestedPokemon(); // Refresh the list of resting Pokémon
+            } catch (error) {
+                console.error(`Failed to update Pokémon status:`, error);
+                showToast(`Error updating Pokémon status: ${error.message}`, true);
+            }
+        }
+        
+        // Placeholder for marking Pokémon as rested (you'll need a backend endpoint)
+        async function markAsRested(transactionId) {
+            // Update the endpoint to use the correct one
+            showToast(`Attempting to mark Pokémon transaction ID ${transactionId} as ready...`);
+            try {
+                const response = await fetch(`/pokemart/update-rest-status/${transactionId}?isReady=true`, { method: 'PATCH' });
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => null);
+                    throw new Error(errorData?.message || `Server error: ${response.status}`);
+                }
+                showToast(`Pokémon transaction ID ${transactionId} marked as ready!`);
+                loadRestedPokemon(); // Refresh the list of resting Pokémon
+            } catch (error) {
+                console.error(`Failed to mark Pokémon transaction ${transactionId} as rested:`, error);
+                showToast(`Error marking Pokémon transaction ${transactionId} as ready: ${error.message}`, true);
+            }
+        }
+
+
+        // Load recent transactions (placeholder for now)
+        async function loadRecentTransactions() {
+            const transactionsDiv = document.getElementById('recentTransactions');
+            try {
+                const response = await fetch('/pokemart/all-transactions'); // Example endpoint
+                if (!response.ok) throw new Error(`Network error: ${response.statusText}`);
+                const transactions = await response.json();
+
+                if (transactions.length === 0) {
+                    transactionsDiv.innerHTML = '<p class="italic text-neutral-600 p-3 bg-white/50 border-2 border-black rounded-none text-center">No recent activity recorded.</p>';
+                    return;
+                }
+
+                transactionsDiv.innerHTML = transactions.map(tx => {
+                    const itemsSummary = tx.items && tx.items.length > 0
+                        ? tx.items.map(itemDetail => `${itemDetail.item.name} x${itemDetail.quantity}`).join(', ')
+                        : 'No items';
+                    return `
+                        <div class="bg-white p-3 border-2 border-black shadow-[2px_2px_0px_rgba(0,0,0,0.7)] rounded-none">
+                            <p class="font-bold text-yellow-800">Transaction #${tx.id}</p>
+                            <p class="text-sm text-neutral-700">Date: ${new Date(tx.date).toLocaleString()}</p>
+                            <p class="text-sm text-neutral-700">Total: Poké₽ ${tx.totalPrice}</p>
+                            <p class="text-xs text-neutral-500">Items: ${itemsSummary}</p>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (error) {
+                console.error('Failed to load recent transactions:', error);
+                showToast('Failed to load recent activity: ' + error.message, true);
+                transactionsDiv.innerHTML = '<p class="italic text-red-600 p-3 bg-red-100 border-2 border-red-500 rounded-none text-center">Error loading activity. Please try again.</p>';
+            }
+        }
+
+
+        // Initial load when the page is ready
+        window.addEventListener('load', () => {
+            const userRaw = sessionStorage.getItem('user');
+            if (!userRaw) {
+                window.location.href = 'login.html';
+                return;
+            }
+            try {
+                const user = JSON.parse(userRaw);
+                // Ensure this role check matches what your backend sends for nurses
+                if (!user || user.role !== 'POKENURSE') {
+                    showToast('Access denied. Redirecting to login.', true);
+                    setTimeout(() => window.location.href = 'login.html', 1500);
+                    return;
+                }
+            } catch (e) { // Invalid JSON in sessionStorage
+                sessionStorage.removeItem('user');
+                window.location.href = 'login.html';
+                return;
+            }
+
+            loadItems();
+            loadRestedPokemon();
+            loadRecentTransactions();
+        });
+    </script>
+</body>
+</html>
