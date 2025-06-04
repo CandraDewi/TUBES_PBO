@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Register - GolfHub</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: 'Arial White', Gadget, sans-serif;
+    }
+    ::-webkit-scrollbar {
+      width: 10px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #1f2937;
+    }
+    ::-webkit-scrollbar-thumb {
+      background-color: #facc15;
+      border-radius: 8px;
+    }
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .animate-slideIn {
+      animation: slideIn 0.5s ease-out;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-yellow-400 to-black min-h-screen flex flex-col items-center justify-center px-6 py-12 text-black selection:bg-white selection:text-black">
+
+  <div class="max-w-md w-full bg-black bg-opacity-90 backdrop-blur-md rounded-2xl border-4 border-yellow-400 p-10 animate-slideIn shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+    <h1 class="text-4xl font-extrabold text-yellow-400 text-center mb-2">GOLFHUB</h1>
+    <h2 class="text-xl font-semibold uppercase tracking-wide text-center mb-8 text-white">Player Registration</h2>
+
+    <form id="registerForm" class="space-y-6">
+      <div>
+        <label for="username" class="block text-sm font-bold uppercase mb-1 text-yellow-200">Username</label>
+        <input type="text" id="username" class="mt-1 block w-full rounded-none border-2 border-black shadow-sm p-3 bg-white text-black focus:outline-none focus:ring-4 focus:ring-yellow-400 focus:border-black placeholder:text-neutral-500" required placeholder="e.g. CandraManika">
+      </div>
+      <div>
+        <label for="password" class="block text-sm font-bold uppercase mb-1 text-yellow-200">Password</label>
+        <input type="password" id="password" class="mt-1 block w-full rounded-none border-2 border-black shadow-sm p-3 bg-white text-black focus:outline-none focus:ring-4 focus:ring-yellow-400 focus:border-black placeholder:text-neutral-500" required placeholder="Make Sure it Easy to Remember!">
+      </div>
+      <div>
+        <label for="confirmPassword" class="block text-sm font-bold uppercase mb-1 text-yellow-200">Confirm Password</label>
+        <input type="password" id="confirmPassword" class="mt-1 block w-full rounded-none border-2 border-black shadow-sm p-3 bg-white text-black focus:outline-none focus:ring-4 focus:ring-yellow-400 focus:border-black placeholder:text-neutral-500" required placeholder="One more time!">
+      </div>
+      <button type="submit" id="registerButton" class="w-full bg-yellow-400 hover:bg-yellow-300 text-black font-extrabold py-3 px-4 uppercase tracking-widest rounded-md shadow-md transition-transform transform hover:scale-105">
+        Sign Me Up!
+      </button>
+    </form>
+
+    <p class="mt-6 text-center text-sm text-yellow-200">
+      Already a player?
+      <a href="login.html" class="text-white font-bold hover:underline">Login here</a>
+    </p>
+
+    <div id="registerError" class="text-yellow-300 font-semibold bg-black/50 p-3 mt-6 text-center rounded-md border border-yellow-400 hidden"></div>
+    <div id="registerSuccess" class="text-green-400 font-semibold bg-black/50 p-3 mt-6 text-center rounded-md border border-green-500 hidden"></div>
+  </div>
+
+  <footer class="text-center mt-12 text-yellow-200 text-sm tracking-wider">
+    &copy; <span id="currentYear"></span> GolfHub Central — Your Swing Starts Here!
+  </footer>
+
+  <script>
+    document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+    const registerForm = document.getElementById('registerForm');
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+    const confirmPasswordInput = document.getElementById('confirmPassword');
+    const errorDiv = document.getElementById('registerError');
+    const successDiv = document.getElementById('registerSuccess');
+    const registerButton = document.getElementById('registerButton');
+
+    registerForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = usernameInput.value.trim();
+      const password = passwordInput.value;
+      const confirmPassword = confirmPasswordInput.value;
+
+      errorDiv.classList.add('hidden');
+      errorDiv.textContent = '';
+      successDiv.classList.add('hidden');
+      successDiv.textContent = '';
+      registerButton.disabled = true;
+      registerButton.textContent = 'Registering...';
+
+      if (!username || !password || !confirmPassword) {
+        errorDiv.textContent = 'All fields are required!';
+        errorDiv.classList.remove('hidden');
+        resetButtonState();
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        errorDiv.textContent = 'Passwords do not match!';
+        errorDiv.classList.remove('hidden');
+        resetButtonState();
+        return;
+      }
+
+      if (password.length < 6) {
+        errorDiv.textContent = 'Password must be at least 6 characters.';
+        errorDiv.classList.remove('hidden');
+        resetButtonState();
+        return;
+      }
+
+      try {
+        const response = await fetch('/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        const responseData = await response.json().catch(() => null);
+
+        if (response.ok) {
+          successDiv.textContent = responseData?.message || 'Registration successful!';
+          successDiv.classList.remove('hidden');
+          registerForm.reset();
+
+          registerButton.textContent = 'Success!';
+          registerButton.classList.replace('bg-yellow-400', 'bg-green-500');
+
+          setTimeout(() => {
+            window.location.href = 'login.html';
+          }, 2500);
+        } else {
+          errorDiv.textContent = responseData?.message || 'Registration failed. Try again.';
+          errorDiv.classList.remove('hidden');
+          resetButtonState();
+        }
+      } catch (err) {
+        errorDiv.textContent = 'Network error. Please try again later.';
+        errorDiv.classList.remove('hidden');
+        resetButtonState();
+      }
+    });
+
+    function resetButtonState() {
+      registerButton.disabled = false;
+      registerButton.textContent = 'Sign Me Up!';
+      registerButton.classList.replace('bg-green-500', 'bg-yellow-400');
+    }
+  </script>
+</body>
+</html>

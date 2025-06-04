@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>GolfHub Portal - Welcome!</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: 'Arial Black', Gadget, sans-serif;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 10px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #e2e8f0;
+    }
+    ::-webkit-scrollbar-thumb {
+      background-color: #16a34a; /* bright green */
+      border-radius: 8px;
+    }
+
+    /* Animation */
+    @keyframes bounceIn {
+      0% {
+        transform: scale(0.9);
+        opacity: 0;
+      }
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    .animate-bounceIn {
+      animation: bounceIn 0.6s ease-out forwards;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-green-500 to-black min-h-screen flex flex-col items-center justify-center px-6 py-12 text-white selection:bg-white selection:text-black">
+
+  <main class="w-full max-w-2xl">
+    <div class="bg-black bg-opacity-80 backdrop-blur-sm rounded-2xl border-4 border-green-500 p-10 text-center shadow-[0_10px_30px_rgba(0,0,0,0.5)] animate-bounceIn">
+      <h1 class="text-5xl sm:text-6xl font-extrabold uppercase tracking-tight mb-4 text-green-400 drop-shadow">
+        GolfHub
+      </h1>
+
+      <p class="text-lg sm:text-xl text-gray-200 mb-8 font-light">
+        Precision. Power. Performance. <br> Manage your golf experience like a pro!
+      </p>
+
+      <div class="flex flex-col sm:flex-row justify-center gap-6">
+        <a href="login.html" class="w-full sm:w-auto bg-green-500 hover:bg-green-400 text-black px-8 py-4 text-lg font-bold uppercase tracking-wide rounded-lg shadow-md transition-transform transform hover:scale-105">
+          Login
+        </a>
+        <a href="register.html" class="w-full sm:w-auto border border-white text-white px-8 py-4 text-lg font-bold uppercase tracking-wide rounded-lg hover:bg-white hover:text-black transition-transform transform hover:scale-105">
+          New Account
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="text-center mt-12 text-green-100 text-sm uppercase tracking-widest">
+    &copy; <span id="currentYear"></span> GolfHub Central — Game On!
+  </footer>
+
+  <script>
+    document.getElementById('currentYear').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
